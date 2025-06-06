@@ -13,4 +13,10 @@ router.post("/login", loginUser);
 // @route   GET /api/v1/users/profile (protected)
 router.get("/profile", verifyJWT, getProfile);
 
+// @route   POST /api/v1/users/forgot-password
+router.post("/forgot-password", forgotPassword);
+
+// @route   POST /api/v1/users/reset-password/:token
+router.post("/reset-password/:token", resetPassword);
+
 export default router;

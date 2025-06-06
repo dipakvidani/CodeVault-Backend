@@ -1,8 +1,9 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.model.js";
-import {ApiError} from "../utils/ApiError.js";
-import {asyncHandler} from "../utils/asyncHandler.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "codevaultsecret";
 
@@ -65,19 +66,94 @@ export const loginUser = asyncHandler(async (req, res) => {
   // Sign token
   const token = jwt.sign(payload, ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
 
-  // Send token as JSON or cookie
-  res.json({
+  // Set token in HTTP-only cookie
+  res.cookie("accessToken", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict",
+    maxAge: 60 * 60 * 1000, // 1 hour
+  });
+
+  res.status(200).json({
     message: "Login successful",
-    accessToken: token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+    },
   });
 });
 
 // Optional: Get current user profile
 export const getProfile = asyncHandler(async (req, res) => {
-  // req.user is set in verifyJWT middleware
-  res.json({
-    id: req.user._id,
-    name: req.user.name,
-    email: req.user.email,
+  return res.status(200).json(
+    new ApiResponse(200, "Profile fetched successfully", req.user)
+  );
+});
+
+// Logout user
+export const logoutUser = asyncHandler(async (req, res) => {
+
+  res.clearCookie("accessToken", {
+    httpOnly: true,
+    sameSite: "Strict",
+    secure: process.env.NODE_ENV === "production",
   });
+
+  res.status(200).json({ message: "Logged out successfully" });
+});
+
+import crypto from "crypto";
+import sendEmail from "../utils/sendEmail.js"; 
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(404, "User not found with this email");
+  }
+
+  // Generate reset token
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+  // Save token and expiry on user
+  user.resetPasswordToken = hashedToken;
+  user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 min
+  await user.save();
+
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+  const message = `Reset your password using this link: \n\n ${resetUrl}`;
+
+  await sendEmail({
+    to: user.email,
+    subject: "Password Reset Link",
+    text: message,
+  });
+
+  res.status(200).json({ message: "Password reset link sent to email" });
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { newPassword } = req.body;
+
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new ApiError(400, "Invalid or expired token");
+  }
+
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  await user.save();
+
+  res.status(200).json({ message: "Password reset successful" });
 });
