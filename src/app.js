@@ -3,6 +3,8 @@ import cors from "cors"
 import cookieParser from "cookie-parser"
 import dotenv from "dotenv"
 import userRoutes from "./routes/user.routes.js"
+import snippetRoutes from "./routes/snippet.routes.js"
+import {ApiError} from "./utils/ApiError.js"
 
 dotenv.config(
   {
@@ -25,14 +27,12 @@ app.use(cookieParser())
 
 //Routes
 app.use("/api/v1/users",userRoutes)
+app.use("/api/v1/snippets",snippetRoutes)
 
 
 // Global error handler
 app.use((err, req, res, next) => {
-  res.status(err.statusCode || 500).json({
-    success: false,
-    message: err.message || "Something went wrong"
-  });
+  throw new ApiError(err.statusCode || 500, err.message || "Something went wrong")
 });
 
 export { app }

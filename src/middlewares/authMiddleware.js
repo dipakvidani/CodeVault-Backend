@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
-import ApiError from "../utils/ApiError.js";
-import asyncHandler from "../utils/asyncHandler.js";
+import User from "../models/User.model.js";
+import {ApiError} from "../utils/ApiError.js";
+import {asyncHandler} from "../utils/asyncHandler.js";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "codevaultsecret";
 
