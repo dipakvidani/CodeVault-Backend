@@ -2,8 +2,13 @@ import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import dotenv from "dotenv"
+import userRoutes from "./routes/user.routes.js"
 
-dotenv.config()
+dotenv.config(
+  {
+    path: './.env'
+  }
+)
 
 const app = express()
 
@@ -19,6 +24,8 @@ app.use(cookieParser())
  
 
 //Routes
+app.use("/api/v1/users",userRoutes)
+
 
 // Global error handler
 app.use((err, req, res, next) => {
