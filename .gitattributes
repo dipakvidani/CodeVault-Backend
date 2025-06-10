@@ -1,0 +1,12 @@
+* text=auto eol=lf
+*.js text
+*.json text
+*.md text
+*.yml text
+*.yaml text
+*.env text
+*.gitattributes text
+*.gitignore text
+*.prettierrc text
+*.prettierignore text
+*.eslintrc.json text 

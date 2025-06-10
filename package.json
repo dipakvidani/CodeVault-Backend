@@ -15,8 +15,8 @@
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-modules src/index.js",
     "start": "node --experimental-modules src/index.js",
-    "preprod": "ls -la src/models/",
-    "prod": "NODE_ENV=production node --experimental-modules src/index.js",
+    "preprod": "ls -la src/models/ && [ -f src/models/User.model.js ] || { echo 'ERROR: Wrong filename case!'; exit 1; }",
+    "prod": "NODE_ENV=production node --preserve-symlinks --preserve-symlinks-main --experimental-modules src/index.js",
     "lint": "eslint .",
     "test": "jest",
     "pm2:start": "pm2 start ecosystem.config.js",
