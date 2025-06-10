@@ -8,17 +8,18 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import sendEmail from "../utils/sendEmail.js";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 
 // Register new user
 export const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { username, email, password } = req.body;
 
   // Check if user exists
-  const userExists = await User.findOne({ email });
+  const userExists = await User.findOne({ $or: [{ email }, { username }] });
   if (userExists) {
     throw new ApiError({
       statusCode: 400,
-      message: "User already exists with this email"
+      message: "User already exists with this email or username"
     });
   }
 
@@ -27,7 +28,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   // Create user
   const user = await User.create({
-    name,
+    username,
     email,
     password: hashedPassword,
   });
@@ -39,13 +40,30 @@ export const registerUser = asyncHandler(async (req, res) => {
     });
   }
 
+  // Generate tokens
+  const accessToken = jwt.sign(
+    { id: user._id, email: user.email },
+    ACCESS_TOKEN_SECRET,
+    { expiresIn: "1h" }
+  );
+
+  const refreshToken = jwt.sign(
+    { id: user._id },
+    REFRESH_TOKEN_SECRET,
+    { expiresIn: "7d" }
+  );
+
   res.status(201).json({
-    message: "User registered successfully",
+    message: "Registration successful",
     user: {
       id: user._id,
-      name: user.name,
+      username: user.username,
       email: user.email,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     },
+    token: accessToken,
+    refreshToken
   });
 });
 
@@ -71,49 +89,49 @@ export const loginUser = asyncHandler(async (req, res) => {
     });
   }
 
-  // Create JWT payload
-  const payload = {
-    id: user._id,
-    email: user.email,
-  };
+  // Generate tokens
+  const accessToken = jwt.sign(
+    { id: user._id, email: user.email },
+    ACCESS_TOKEN_SECRET,
+    { expiresIn: "1h" }
+  );
 
-  // Sign token
-  const token = jwt.sign(payload, ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
-
-  // Set token in HTTP-only cookie
-  res.cookie("accessToken", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: "Lax",
-    maxAge: 60 * 60 * 1000, // 1 hour
-  });
+  const refreshToken = jwt.sign(
+    { id: user._id },
+    REFRESH_TOKEN_SECRET,
+    { expiresIn: "7d" }
+  );
 
   res.status(200).json({
     message: "Login successful",
     user: {
       id: user._id,
-      name: user.name,
+      username: user.username,
       email: user.email,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     },
+    token: accessToken,
+    refreshToken
   });
 });
 
 // Get current user profile
 export const getProfile = asyncHandler(async (req, res) => {
-  return res.status(200).json(
-    new ApiResponse(200, "Profile fetched successfully", req.user)
-  );
+  const user = await User.findById(req.user._id).select("-password");
+  
+  return res.status(200).json({
+    id: user._id,
+    username: user.username,
+    email: user.email,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt
+  });
 });
 
 // Logout user
 export const logoutUser = asyncHandler(async (req, res) => {
-  res.clearCookie("accessToken", {
-    httpOnly: true,
-    sameSite: "Lax",
-    secure: process.env.NODE_ENV === 'production',
-  });
-
-  res.status(200).json({ message: "Logged out successfully" });
+  res.status(200).json({ message: "Logout successful" });
 });
 
 export const forgotPassword = asyncHandler(async (req, res) => {
