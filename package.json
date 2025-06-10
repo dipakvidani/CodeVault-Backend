@@ -10,9 +10,9 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
-    "start": "node --experimental-modules src/index.js",
-    "prod": "NODE_ENV=production node --experimental-modules src/index.js",
+    "dev": "nodemon -r dotenv/config --es-module-specifier-resolution=node src/index.js",
+    "start": "node --es-module-specifier-resolution=node src/index.js",
+    "prod": "NODE_ENV=production node --es-module-specifier-resolution=node src/index.js",
     "lint": "eslint .",
     "test": "jest",
     "pm2:start": "pm2 start ecosystem.config.js",

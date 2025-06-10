@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: npm install
-    startCommand: NODE_ENV=production node --experimental-modules src/index.js
+    startCommand: NODE_ENV=production node --es-module-specifier-resolution=node src/index.js
     envVars:
       - key: NODE_ENV
         value: production
