@@ -2,6 +2,7 @@ services:
   - type: web
     name: codevault-backend
     env: node
+    plan: free
     buildCommand: npm install
     startCommand: npm run prod
     envVars:
