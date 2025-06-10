@@ -3,11 +3,8 @@ services:
     name: codevault-backend
     env: node
     plan: free
-    buildCommand: |
-      npm install
-      chmod -R +x src/models/
-      ls -la src/models/
-    startCommand: NODE_ENV=production node --experimental-modules src/index.js
+    buildCommand: npm install
+    startCommand: npm run prod
     envVars:
       - key: NODE_ENV
         value: production
