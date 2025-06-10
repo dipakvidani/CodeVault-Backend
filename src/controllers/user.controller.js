@@ -14,7 +14,10 @@ export const registerUser = asyncHandler(async (req, res) => {
   // Check if user exists
   const userExists = await User.findOne({ email });
   if (userExists) {
-    throw new ApiError(400, "User already exists with this email");
+    throw new ApiError({
+      statusCode: 400,
+      message: "User already exists with this email"
+    });
   }
 
   // Hash password
@@ -28,7 +31,10 @@ export const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (!user) {
-    throw new ApiError(500, "Failed to create user");
+    throw new ApiError({
+      statusCode: 500,
+      message: "Failed to create user"
+    });
   }
 
   res.status(201).json({
@@ -48,13 +54,19 @@ export const loginUser = asyncHandler(async (req, res) => {
   // Find user
   const user = await User.findOne({ email });
   if (!user) {
-    throw new ApiError(401, "Invalid email or password");
+    throw new ApiError({
+      statusCode: 401,
+      message: "Invalid email or password"
+    });
   }
 
   // Check password
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    throw new ApiError(401, "Invalid email or password");
+    throw new ApiError({
+      statusCode: 401,
+      message: "Invalid email or password"
+    });
   }
 
   // Create JWT payload
@@ -69,8 +81,8 @@ export const loginUser = asyncHandler(async (req, res) => {
   // Set token in HTTP-only cookie
   res.cookie("accessToken", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
+    secure: false, // Allow non-HTTPS in development
+    sameSite: "Lax", // More permissive than Strict
     maxAge: 60 * 60 * 1000, // 1 hour
   });
 
@@ -86,6 +98,7 @@ export const loginUser = asyncHandler(async (req, res) => {
 
 // Optional: Get current user profile
 export const getProfile = asyncHandler(async (req, res) => {
+  console.log("User controller: getProfile entered");
   return res.status(200).json(
     new ApiResponse(200, "Profile fetched successfully", req.user)
   );
@@ -93,11 +106,10 @@ export const getProfile = asyncHandler(async (req, res) => {
 
 // Logout user
 export const logoutUser = asyncHandler(async (req, res) => {
-
   res.clearCookie("accessToken", {
     httpOnly: true,
-    sameSite: "Strict",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    secure: false,
   });
 
   res.status(200).json({ message: "Logged out successfully" });

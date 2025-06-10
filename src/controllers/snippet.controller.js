@@ -48,12 +48,57 @@ export const getMySnippets = asyncHandler(async (req, res) => {
  * @access Public
  */
 export const getPublicSnippets = asyncHandler(async (_req, res) => {
-  const snippets = await Snippet.find({ isPublic: true }).populate("user", "name email").sort({ createdAt: -1 });
+  console.log("Snippet controller: getPublicSnippets entered");
+  try {
+    const snippets = await Snippet.find({ isPublic: true })
+      .populate("user", "name email")
+      .sort({ createdAt: -1 })
+      .lean();
 
-  res.json({
-    count: snippets.length,
-    snippets,
-  });
+    console.log(`Successfully fetched ${snippets.length} public snippets.`);
+    
+    // Ensure each snippet has required fields and proper types
+    const validSnippets = snippets.map(snippet => {
+      // Log the raw snippet for debugging
+      console.log("Processing snippet:", JSON.stringify(snippet, null, 2));
+      
+      // Log the user object after population
+      console.log("Snippet user after population:", JSON.stringify(snippet.user, null, 2));
+
+      // Ensure all required fields are present and of correct type
+      const processedSnippet = {
+        _id: String(snippet._id),
+        title: String(snippet.title || 'Untitled Snippet'),
+        code: String(snippet.code || ''),
+        language: String(snippet.language || 'JavaScript'),
+        isPublic: Boolean(snippet.isPublic),
+        createdAt: snippet.createdAt,
+        updatedAt: snippet.updatedAt
+      };
+
+      // Add user info if available
+      if (snippet.user && typeof snippet.user === 'object') {
+        processedSnippet.user = {
+          name: String(snippet.user.name || ''),
+          email: String(snippet.user.email || '')
+        };
+      } else {
+        processedSnippet.user = null; // Ensure user is explicitly null if not an object or not present
+      }
+
+      return processedSnippet;
+    });
+
+    console.log("Processed snippets:", JSON.stringify(validSnippets, null, 2));
+
+    res.json({
+      count: validSnippets.length,
+      snippets: validSnippets
+    });
+  } catch (error) {
+    console.error("Error in getPublicSnippets:", error);
+    throw new ApiError(500, "Failed to retrieve public snippets");
+  }
 });
 
 /**

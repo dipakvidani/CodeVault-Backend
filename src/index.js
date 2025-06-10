@@ -4,20 +4,33 @@ dotenv.config({
 })
 import connectDb from './db/index.js'
 import { app } from "./app.js"
+import { scheduleBackups } from './utils/backup.js'
+import logger from './utils/logger.js'
 
+const startServer = async () => {
+    try {
+        // Connect to database
+        await connectDb()
+        
+        // Initialize backup scheduler in production
+        if (process.env.NODE_ENV === 'production') {
+            scheduleBackups()
+            logger.info('Database backup scheduler initialized')
+        }
 
-
-connectDb()
-    .then(() => {
         app.on("error", (err) => {
-            console.log("ERROR : ", err.message);
-            throw new Error
+            logger.error("Server error:", err.message)
+            throw err
         })
 
-        app.listen(process.env.Port || 8000, () => {
-            console.log(`server is running at port ${process.env.PORT || 8000}`);
+        const port = process.env.PORT || 8000
+        app.listen(port, () => {
+            logger.info(`Server is running at port ${port}`)
         })
-    })
-    .catch((err) => {
-        console.log("MOngoDb connection Fail. Error: ", err.message);
-    })
+    } catch (err) {
+        logger.error("Failed to start server:", err)
+        process.exit(1)
+    }
+}
+
+startServer()
