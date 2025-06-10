@@ -4,6 +4,10 @@ import logger from "../utils/logger.js"
 
 const connectDB = async () => {
     try {
+        if (!process.env.MONGODB_URI) {
+            throw new Error('MONGODB_URI is not defined in environment variables')
+        }
+
         const options = {
             dbName: DB_NAME,
             maxPoolSize: 10, // Maximum number of connections in the pool
@@ -14,6 +18,7 @@ const connectDB = async () => {
             heartbeatFrequencyMS: 10000, // Check the server's status every 10 seconds
         }
 
+        logger.info('Attempting to connect to MongoDB...')
         const connectionInstance = await mongoose.connect(process.env.MONGODB_URI, options)
         
         logger.info(`MongoDB Connected || DB Host: ${connectionInstance.connection.host}`)
