@@ -2,7 +2,10 @@ import mongoose from "mongoose"
 import { DB_NAME } from "../constants.js"
 import logger from "../utils/logger.js"
 
-const connectDB = async () => {
+const MAX_RETRIES = 5
+const RETRY_INTERVAL = 5000 // 5 seconds
+
+const connectDB = async (retryCount = 0) => {
     try {
         if (!process.env.MONGODB_URI) {
             throw new Error('MONGODB_URI is not defined in environment variables')
@@ -16,9 +19,12 @@ const connectDB = async () => {
             family: 4, // Use IPv4, skip trying IPv6
             serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
             heartbeatFrequencyMS: 10000, // Check the server's status every 10 seconds
+            retryWrites: true,
+            retryReads: true,
+            w: 'majority'
         }
 
-        logger.info('Attempting to connect to MongoDB...')
+        logger.info(`Attempting to connect to MongoDB... (Attempt ${retryCount + 1}/${MAX_RETRIES})`)
         const connectionInstance = await mongoose.connect(process.env.MONGODB_URI, options)
         
         logger.info(`MongoDB Connected || DB Host: ${connectionInstance.connection.host}`)
@@ -30,10 +36,20 @@ const connectDB = async () => {
 
         mongoose.connection.on('error', (err) => {
             logger.error('Mongoose connection error:', err)
+            // Attempt to reconnect on error
+            if (retryCount < MAX_RETRIES) {
+                logger.info(`Retrying connection in ${RETRY_INTERVAL/1000} seconds...`)
+                setTimeout(() => connectDB(retryCount + 1), RETRY_INTERVAL)
+            }
         })
 
         mongoose.connection.on('disconnected', () => {
             logger.warn('Mongoose disconnected from MongoDB')
+            // Attempt to reconnect on disconnect
+            if (retryCount < MAX_RETRIES) {
+                logger.info(`Retrying connection in ${RETRY_INTERVAL/1000} seconds...`)
+                setTimeout(() => connectDB(retryCount + 1), RETRY_INTERVAL)
+            }
         })
 
         // Handle application termination
@@ -50,7 +66,14 @@ const connectDB = async () => {
 
     } catch (error) {
         logger.error('MongoDB connection error:', error)
-        process.exit(1) // 0->success, 1->failure
+        
+        if (retryCount < MAX_RETRIES) {
+            logger.info(`Retrying connection in ${RETRY_INTERVAL/1000} seconds...`)
+            setTimeout(() => connectDB(retryCount + 1), RETRY_INTERVAL)
+        } else {
+            logger.error('Max retries reached. Could not connect to MongoDB')
+            process.exit(1)
+        }
     }
 }
 

@@ -3,10 +3,8 @@ services:
     name: codevault-backend
     env: node
     plan: free
-    buildCommand: |
-      npm install
-      cp -r src/* .
-    startCommand: NODE_ENV=production node --experimental-modules index.js
+    buildCommand: npm install
+    startCommand: cd src && NODE_ENV=production node --experimental-modules index.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -18,5 +16,14 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: ACCESS_TOKEN_SECRET
+        sync: false
     healthCheckPath: /health
-    autoDeploy: true 
+    autoDeploy: true
+    envVarGroups:
+      - name: production
+        envVars:
+          - key: NODE_ENV
+            value: production
+          - key: PORT
+            value: 8000 
