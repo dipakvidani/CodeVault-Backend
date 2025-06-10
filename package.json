@@ -9,13 +9,14 @@
   "author": "Dipak Vidani",
   "type": "module",
   "main": "src/index.js",
-  "exports": {
-    ".": "./src/index.js"
+  "imports": {
+    "#root/*": "./src/*.js"
   },
   "scripts": {
-    "dev": "nodemon -r dotenv/config --es-module-specifier-resolution=node src/index.js",
-    "start": "node --es-module-specifier-resolution=node src/index.js",
-    "prod": "NODE_ENV=production node --es-module-specifier-resolution=node src/index.js",
+    "dev": "nodemon -r dotenv/config --experimental-modules src/index.js",
+    "start": "node --experimental-modules src/index.js",
+    "preprod": "ls -la src/models/",
+    "prod": "NODE_ENV=production node --experimental-modules src/index.js",
     "lint": "eslint .",
     "test": "jest",
     "pm2:start": "pm2 start ecosystem.config.js",
@@ -47,6 +48,6 @@
     "nodemon": "^3.1.10"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "18.x"
   }
 }

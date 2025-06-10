@@ -5,8 +5,9 @@ services:
     plan: free
     buildCommand: |
       npm install
-      ls -la src/models/  # Debug: List files in models directory
-    startCommand: NODE_ENV=production node --es-module-specifier-resolution=node src/index.js
+      chmod -R +x src/models/
+      ls -la src/models/
+    startCommand: NODE_ENV=production node --experimental-modules src/index.js
     envVars:
       - key: NODE_ENV
         value: production
