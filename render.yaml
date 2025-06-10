@@ -3,7 +3,9 @@ services:
     name: codevault-backend
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: |
+      npm install
+      ls -la src/models/  # Debug: List files in models directory
     startCommand: NODE_ENV=production node --es-module-specifier-resolution=node src/index.js
     envVars:
       - key: NODE_ENV
