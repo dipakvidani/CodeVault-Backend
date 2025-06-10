@@ -3,7 +3,7 @@ import User from "../models/User.model.js";
 import {ApiError} from "../utils/ApiError.js";
 import {asyncHandler} from "../utils/asyncHandler.js";
 
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "codevaultsecret";
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 
 const verifyJWT = asyncHandler(async (req, res, next) => {
   console.log("Auth middleware: verifyJWT entered");

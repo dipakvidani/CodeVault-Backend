@@ -1,11 +1,13 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import User from "../models/User.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import sendEmail from "../utils/sendEmail.js";
 
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "codevaultsecret";
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 
 // Register new user
 export const registerUser = asyncHandler(async (req, res) => {
@@ -81,8 +83,8 @@ export const loginUser = asyncHandler(async (req, res) => {
   // Set token in HTTP-only cookie
   res.cookie("accessToken", token, {
     httpOnly: true,
-    secure: false, // Allow non-HTTPS in development
-    sameSite: "Lax", // More permissive than Strict
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: "Lax",
     maxAge: 60 * 60 * 1000, // 1 hour
   });
 
@@ -96,9 +98,8 @@ export const loginUser = asyncHandler(async (req, res) => {
   });
 });
 
-// Optional: Get current user profile
+// Get current user profile
 export const getProfile = asyncHandler(async (req, res) => {
-  console.log("User controller: getProfile entered");
   return res.status(200).json(
     new ApiResponse(200, "Profile fetched successfully", req.user)
   );
@@ -109,14 +110,11 @@ export const logoutUser = asyncHandler(async (req, res) => {
   res.clearCookie("accessToken", {
     httpOnly: true,
     sameSite: "Lax",
-    secure: false,
+    secure: process.env.NODE_ENV === 'production',
   });
 
   res.status(200).json({ message: "Logged out successfully" });
 });
-
-import crypto from "crypto";
-import sendEmail from "../utils/sendEmail.js"; 
 
 export const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
