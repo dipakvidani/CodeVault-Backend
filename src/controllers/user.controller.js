@@ -54,6 +54,33 @@ export const registerUser = asyncHandler(async (req, res) => {
     { expiresIn: "7d" }
   );
 
+  // Send welcome email
+  try {
+    const welcomeHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Welcome to CodeVault!</h2>
+        <p>Hi ${user.username},</p>
+        <p>Thank you for registering your account with CodeVault. We're excited to have you!</p>
+        <p>Start storing and sharing your code snippets securely.</p>
+        <p>Best regards,</p>
+        <p>The CodeVault Team</p>
+      </div>
+    `;
+    const welcomeText = `Welcome to CodeVault, ${user.username}! Thank you for registering your account.`;
+    await sendEmail({
+      to: user.email,
+      subject: "Welcome to CodeVault!",
+      text: welcomeText,
+      html: welcomeHtml
+    });
+    logger.info('Welcome email sent successfully', { email: user.email });
+  } catch (emailError) {
+    logger.error('Failed to send welcome email', {
+      error: emailError.message,
+      email: user.email
+    });
+  }
+
   res.status(201).json({
     message: "Registration successful",
     user: {
@@ -102,6 +129,34 @@ export const loginUser = asyncHandler(async (req, res) => {
     REFRESH_TOKEN_SECRET,
     { expiresIn: "7d" }
   );
+
+  // Send login notification email
+  try {
+    const loginHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Login Notification</h2>
+        <p>Hi ${user.username},</p>
+        <p>This is a notification that your CodeVault account was just logged into.</p>
+        <p>If this was not you, please change your password immediately.</p>
+        <p>Login Time: ${new Date().toLocaleString()}</p>
+        <p>Best regards,</p>
+        <p>The CodeVault Team</p>
+      </div>
+    `;
+    const loginText = `Hi ${user.username}, your CodeVault account was just logged into at ${new Date().toLocaleString()}. If this was not you, please change your password immediately.`;
+    await sendEmail({
+      to: user.email,
+      subject: "CodeVault Account Login Notification",
+      text: loginText,
+      html: loginHtml
+    });
+    logger.info('Login notification email sent successfully', { email: user.email });
+  } catch (emailError) {
+    logger.error('Failed to send login notification email', {
+      error: emailError.message,
+      email: user.email
+    });
+  }
 
   res.status(200).json({
     message: "Login successful",
