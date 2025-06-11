@@ -25,7 +25,7 @@ app.use(timeoutMiddleware())
 app.use(performanceMiddleware)
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: [process.env.FRONTEND_URL, 'https://codevalut-frontend.vercel.app'],
   credentials: true
 }))
 

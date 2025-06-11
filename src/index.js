@@ -10,13 +10,34 @@ const envPath = path.join(__dirname, '..', '.env')
 console.log('Loading .env from:', envPath)
 dotenv.config({ path: envPath })
 
-// Verify environment variables are loaded
-if (!process.env.MONGODB_URI) {
-    console.error('MONGODB_URI is not set in environment variables')
-    console.error('Current working directory:', process.cwd())
-    console.error('Environment variables loaded:', process.env)
-    process.exit(1)
+// Verify required environment variables
+const requiredEnvVars = {
+    MONGODB_URI: 'Database connection string',
+    SMTP_USER: 'Gmail account for sending emails',
+    SMTP_PASS: 'Gmail app password for sending emails',
+    ACCESS_TOKEN_SECRET: 'JWT access token secret',
+    REFRESH_TOKEN_SECRET: 'JWT refresh token secret'
+};
+
+const missingEnvVars = Object.entries(requiredEnvVars)
+    .filter(([key]) => !process.env[key])
+    .map(([key, description]) => `${key} (${description})`);
+
+if (missingEnvVars.length > 0) {
+    console.error('Missing required environment variables:');
+    missingEnvVars.forEach(varName => console.error(`- ${varName}`));
+    console.error('\nPlease create a .env file with these variables.');
+    process.exit(1);
 }
+
+// Log environment variables for debugging (without sensitive values)
+console.log('Environment variables loaded:', {
+    NODE_ENV: process.env.NODE_ENV,
+    MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set',
+    SMTP_USER: process.env.SMTP_USER ? 'Set' : 'Not set',
+    SMTP_PASS: process.env.SMTP_PASS ? 'Set' : 'Not set',
+    PORT: process.env.PORT
+});
 
 import connectDb from './db/index.js'
 import { app } from "./app.js"
@@ -27,13 +48,6 @@ let server;
 
 const startServer = async () => {
     try {
-        // Log environment variables for debugging
-        logger.info('Environment variables:', {
-            NODE_ENV: process.env.NODE_ENV,
-            MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set',
-            PORT: process.env.PORT
-        })
-
         // Connect to database
         await connectDb()
         
