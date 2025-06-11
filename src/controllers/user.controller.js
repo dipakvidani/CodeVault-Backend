@@ -6,6 +6,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import sendEmail from "../utils/sendEmail.js";
+import logger from "../utils/logger.js";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
@@ -137,30 +138,75 @@ export const logoutUser = asyncHandler(async (req, res) => {
 export const forgotPassword = asyncHandler(async (req, res) => {
   const { email } = req.body;
 
-  const user = await User.findOne({ email });
-  if (!user) {
-    throw new ApiError(404, "User not found with this email");
+  logger.info('Forgot password request received', { email });
+
+  if (!email) {
+    throw new ApiError(400, "Email is required");
   }
 
-  // Generate reset token
-  const resetToken = crypto.randomBytes(32).toString("hex");
-  const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+  const user = await User.findOne({ email });
+  if (!user) {
+    logger.warn('Password reset requested for non-existent email', { email });
+    // Don't reveal that the user doesn't exist
+    return res.status(200).json({ message: "If an account exists with this email, you will receive a password reset link" });
+  }
 
-  // Save token and expiry on user
-  user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 min
-  await user.save();
+  try {
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
-  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-  const message = `Reset your password using this link: \n\n ${resetUrl}`;
+    // Save token and expiry on user
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 min
+    await user.save();
 
-  await sendEmail({
-    to: user.email,
-    subject: "Password Reset Link",
-    text: message,
-  });
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    
+    // Create HTML email template
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Reset Your Password</h2>
+        <p>You requested a password reset for your CodeVault account.</p>
+        <p>Click the button below to reset your password:</p>
+        <a href="${resetUrl}" 
+           style="display: inline-block; padding: 12px 24px; background-color: #4F46E5; color: white; text-decoration: none; border-radius: 4px; margin: 16px 0;">
+          Reset Password
+        </a>
+        <p>This link will expire in 15 minutes.</p>
+        <p>If you didn't request this, you can safely ignore this email.</p>
+        <hr style="border: 1px solid #eee; margin: 20px 0;">
+        <p style="color: #666; font-size: 12px;">
+          If the button doesn't work, copy and paste this link into your browser:<br>
+          ${resetUrl}
+        </p>
+      </div>
+    `;
 
-  res.status(200).json({ message: "Password reset link sent to email" });
+    const text = `Reset your password using this link: ${resetUrl}`;
+
+    await sendEmail({
+      to: user.email,
+      subject: "Reset Your CodeVault Password",
+      text,
+      html
+    });
+
+    logger.info('Password reset email sent successfully', { email: user.email });
+    res.status(200).json({ message: "If an account exists with this email, you will receive a password reset link" });
+  } catch (error) {
+    logger.error('Failed to send password reset email', { 
+      error: error.message,
+      email: user.email 
+    });
+    
+    // Reset the token fields if email sending fails
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    throw new ApiError(500, "Failed to send password reset email. Please try again later.");
+  }
 });
 
 export const resetPassword = asyncHandler(async (req, res) => {
