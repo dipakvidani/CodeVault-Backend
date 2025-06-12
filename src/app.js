@@ -25,7 +25,11 @@ app.use(timeoutMiddleware())
 app.use(performanceMiddleware)
 
 app.use(cors({
-  origin: [process.env.FRONTEND_URL, 'https://codevalut-frontend.vercel.app'],
+  origin: [
+    process.env.FRONTEND_URL,
+    'https://codevalut-frontend.vercel.app',
+    'https://codevalut-frontend-mkja7xyp2-dipak-vidanis-projects.vercel.app'
+  ],
   credentials: true
 }))
 
